@@ -26,4 +26,5 @@ class OrderDataAccess():
     @staticmethod
     def create_order(order: Orders, session: Session): # depende de outro DAO, então preciso do cursor pra manter dentro de uma mesma transação
         session.add(order)
+        logger.log("Order criada com sucesso!")
     

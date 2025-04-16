@@ -55,10 +55,6 @@ class registerOrderView(Toplevel):
     self.frameListbox = Listbox(self, height=6, width=40)
     self.frameListbox.pack()
 
-    self.state = IntVar()
-    self.frameCheckbox = Checkbutton(self, text="Modo Injection", variable=self.state)
-    self.frameCheckbox.pack()
-
     self.frameButton = Frame(self)
     self.frameButton.pack()
 

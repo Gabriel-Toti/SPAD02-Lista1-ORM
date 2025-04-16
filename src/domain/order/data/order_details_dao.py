@@ -10,3 +10,4 @@ class OrderDetailsDataAccess():
     @staticmethod
     def create_many_order_details(order_details: list[OrderDetails], session: Session):
         session.bulk_save_objects(order_details)
+        logger.log("Detalhes adicionados com sucesso")

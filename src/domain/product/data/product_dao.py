@@ -24,4 +24,5 @@ class ProductDataAccess():
     @staticmethod
     def update_many_products_stock(product_id: list[int], amount: list[tuple[int, int]], session: Session):
         session.bulk_update_mappings(Products, [{"productid": id, "unitsinstock": qtd[0], "unitsonorder": qtd[1]} for id, qtd in zip(product_id, amount)])
+        logger.log("Estoque atualizado com sucesso.")
                 

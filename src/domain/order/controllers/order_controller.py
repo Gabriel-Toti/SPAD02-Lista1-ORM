@@ -55,7 +55,6 @@ class OrderController():
             self.clearRegisterHandler(event)
         except Exception as error:
             ErrorHandler.showError(ErrorHandler.catchError(error))
-            # raise error
 
 #------------------------------------
 
@@ -161,18 +160,21 @@ class OrderController():
                     products_ids.append(product.productid)
 
                 order_id = OrderDataAccess.get_last_order_id() + 1 # Gera um id para o produto baseado nos que já existem
-                order = Orders(orderid=order_id, customers=customer, employees=employee, orderdate=order_date)
+                order = Orders(orderid=order_id, customerid=customer.customerid, employeeid=employee.employeeid, orderdate=order_date)
                 
                 details_list = []
                 
                 for product in products: # Um details para cada produto
-                    order_details = OrderDetails(order=order, products=product[0], unitprice=product[0].unitprice, quantity=product[1])
+                    order_details = OrderDetails(orderid=order_id, productid=product[0].productid, unitprice=product[0].unitprice, quantity=product[1])
                     details_list.append(order_details)
                     
                 
                 # Executando tudo em uma mesma transação
 
                 OrderDataAccess.create_order(order, session)
+
+                session.flush()
+
                 OrderDetailsDataAccess.create_many_order_details(details_list, session)
                 ProductDataAccess.update_many_products_stock(products_ids, quantities, session)
 

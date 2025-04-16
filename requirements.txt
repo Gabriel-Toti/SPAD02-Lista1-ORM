@@ -1,6 +1,6 @@
 greenlet==3.2.0
 inflect==7.5.0
--e git+ssh://git@github.com/Gabriel-Toti/SPAD02-Lista1-ORM.git@c31823689619fe482d632e859e45b466f5ec696e#egg=lista_1
+-e git+https://github.com/Gabriel-Toti/SPAD02-Lista1-ORM.git@1cc3196c88b8df77fb66a7adb1bd0ef0050d15bf#egg=lista_1
 more-itertools==10.6.0
 psycopg==3.2.6
 psycopg-binary==3.2.6

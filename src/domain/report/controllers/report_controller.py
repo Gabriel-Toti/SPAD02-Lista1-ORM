@@ -1,7 +1,6 @@
 from ..data.report_dao import ReportDataAccess
 from ..views import report_view
 from datetime import datetime
-from datetime import date
 from utils.error_handler import ErrorHandler
 
 class ReportController():

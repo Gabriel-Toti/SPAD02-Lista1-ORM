@@ -1,6 +1,6 @@
 from database.database_drive import database
-from ..models.product_model import Product
-from psycopg import Cursor
+from domain.models import Products
+from sqlalchemy.orm import Session
 from utils.logger import logger
 from utils.errors.not_found_exception import NotFoundException
 
@@ -11,55 +11,17 @@ class ProductDataAccess():
     @staticmethod
     def get_product_by_name(name: str):
         product = None
-        req_name = name.replace("'", "''")
-        with database() as connection:
-            with connection.cursor() as session:
-                session.execute(f"select * from northwind.products where productname = %s;", (req_name, ))
-                row = session.fetchall()
-                if(len(row) == 0):
-                    raise NotFoundException(f"Produto '{name}' não encontrado.")
-                product = Product(*row[0])
+        session = database()
+        product = session.query(Products).filter(Products.productname == name).first()
+        session.close()
+        
+        if product == None:
+            raise NotFoundException(f"Produto com nome {name} não encontrado.")
+
         return product
     
-    @staticmethod
-    def get_product_by_name(name: str):
-        product = None
-        req_name = name.replace("'", "''")
-        with database() as connection:
-            with connection.cursor() as session:
-                session.execute(f"select * from northwind.products where productname = '{req_name}';")
-                row = session.fetchall()
-                if(len(row) == 0):
-                    raise NotFoundException(f"Produto '{name}' não encontrado.")
-                product = Product(*row[0])
-        return product
     
     @staticmethod
-    def update_many_products_stock(product_id: list[int], amount: list[int], session: Cursor): # Poderia ser feito com um trigger tbm, talvez fosse melhor
-        values = []
-        for data in zip(product_id, amount):
-            values.append(data)
-        
-        session.execute(f"""update northwind.products
-                         set unitsinstock = unitsinstock - o.amount, unitsonorder = unitsonorder + o.amount
-                         from ( values 
-                               {str(values).replace("[", "").replace("]", "")} 
-                        ) as o(product_id, amount)
-                         where productid = o.product_id;""")
-        logger.log("Estoque atualizado com sucesso")
-    
-    @staticmethod
-    def update_many_products_stock_safe(product_id: list[int], amount: list[int], session: Cursor): # Poderia ser feito com um trigger tbm, talvez fosse melhor
-        values = []
-        for data in zip(product_id, amount):
-            values.append(data)
-        
-        session.executemany(f"""update northwind.products
-                         set unitsinstock = unitsinstock - o.amount, unitsonorder = unitsonorder + o.amount
-                         from ( values 
-                               (%s, %s)
-                        ) as o(product_id, amount)
-                         where productid = o.product_id;""",
-                         values)
-        logger.log("Estoque atualizado com sucesso")
+    def update_many_products_stock(product_id: list[int], amount: list[tuple[int, int]], session: Session):
+        session.bulk_update_mappings(Products, [{"productid": id, "unitsinstock": qtd[0], "unitsonorder": qtd[1]} for id, qtd in zip(product_id, amount)])
                 

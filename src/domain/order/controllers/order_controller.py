@@ -4,8 +4,8 @@ from domain.employees.data.employee_dao import EmployeeDataAccess
 from domain.customers.data.customer_dao import CustomerDataAccess
 from domain.product.data.product_dao import ProductDataAccess
 from ..views import order_view
-from ..models.order_model import Order
-from ..models.order_details_model import OrderDetails
+from domain.models import Orders
+from domain.models import OrderDetails
 from utils.error_handler import ErrorHandler
 from datetime import date, datetime
 from database.database_drive import database
@@ -46,10 +46,7 @@ class OrderController():
             if not self.list:
                 raise ValueError('Adicione pelo menos um produto!')
             
-            if self.is_safe():
-                self.__create_order_safe(first_name, last_name, customer_name, self.list, order_date)
-            else:
-                self.__create_order(first_name, last_name, customer_name, self.list, order_date)
+            self.__create_order(first_name, last_name, customer_name, self.list, order_date)
 
 
             self.orderRegisterView.showView('Sucesso', 'Pedido cadastrado!')
@@ -58,6 +55,7 @@ class OrderController():
             self.clearRegisterHandler(event)
         except Exception as error:
             ErrorHandler.showError(ErrorHandler.catchError(error))
+            # raise error
 
 #------------------------------------
 
@@ -141,13 +139,8 @@ class OrderController():
 
 #------------------------------------
 
-    def is_safe(self):
-        return not self.orderRegisterView.state.get()
-
-#------------------------------------
-
     def __create_order(self, first_name: str, last_name: str, customer_name: str, products_data: list[tuple[str, int]], order_date: date): # Callback
-            connetion = database()
+            session = database()
             try: 
                 employee = EmployeeDataAccess.get_employee_by_name(first_name, last_name)
                 customer = CustomerDataAccess.get_customer_by_name(customer_name)
@@ -160,82 +153,35 @@ class OrderController():
                     product = ProductDataAccess.get_product_by_name(name) # Produto por produto, porque se um não existir, é mais fácil de indicar qual
 
                     # Verificação de estoque
-                    if(product.units_in_stock < quantity):
-                        raise OutOfStockException(f"Não há unidades suficientes de '{product.product_name}' para o pedido.")
+                    if(product.unitsinstock < quantity):
+                        raise OutOfStockException(f"Não há unidades suficientes de '{product.productname}' para o pedido.")
                     
                     products.append((product, quantity))
-                    quantities.append(quantity)
-                    products_ids.append(product.product_id)
+                    quantities.append((product.unitsinstock - quantity, product.unitsonorder + quantity))
+                    products_ids.append(product.productid)
 
                 order_id = OrderDataAccess.get_last_order_id() + 1 # Gera um id para o produto baseado nos que já existem
-                order = Order(order_id, customer.customer_id, employee.employee_id, order_date)
+                order = Orders(orderid=order_id, customers=customer, employees=employee, orderdate=order_date)
                 
                 details_list = []
                 
                 for product in products: # Um details para cada produto
-                    order_details = OrderDetails(order_id, product[0].product_id, product[0].unit_price, product[1])
+                    order_details = OrderDetails(order=order, products=product[0], unitprice=product[0].unitprice, quantity=product[1])
                     details_list.append(order_details)
                     
                 
                 # Executando tudo em uma mesma transação
-                session = connetion.cursor()
 
                 OrderDataAccess.create_order(order, session)
                 OrderDetailsDataAccess.create_many_order_details(details_list, session)
                 ProductDataAccess.update_many_products_stock(products_ids, quantities, session)
 
-                session.close()
-                connetion.commit()
+                session.commit()
                 # Fim da transação;
 
             except Exception as error:
-                connetion.rollback()
-                raise error
-            
-    def __create_order_safe(self, first_name: str, last_name: str, customer_name: str, products_data: list[tuple[str, int]], order_date: date): # Callback
-            connetion = database()
-            try: 
-                employee = EmployeeDataAccess.get_employee_by_name_safe(first_name, last_name)
-                customer = CustomerDataAccess.get_customer_by_name_safe(customer_name)
-                
-                products = []
-                products_ids = []
-                quantities = []
-
-                for name, quantity in products_data:
-                    product = ProductDataAccess.get_product_by_name(name) # Produto por produto, porque se um não existir, é mais fácil de indicar qual
-
-                    # Verificação de estoque
-                    if(product.units_in_stock < quantity):
-                        raise OutOfStockException(f"Não há unidades suficientes de '{product.product_name}' para o pedido.")
-                    
-                    products.append((product, quantity))
-                    quantities.append(quantity)
-                    products_ids.append(product.product_id)
-
-                order_id = OrderDataAccess.get_last_order_id() + 1 # Gera um id para o produto baseado nos que já existem
-                order = Order(order_id, customer.customer_id, employee.employee_id, order_date)
-                
-                details_list = []
-                
-                for product in products: # Um details para cada produto
-                    order_details = OrderDetails(order_id, product[0].product_id, product[0].unit_price, product[1])
-                    details_list.append(order_details)
-                    
-                
-                # Executando tudo em uma mesma transação
-                session = connetion.cursor()
-
-                OrderDataAccess.create_order_safe(order, session)
-                OrderDetailsDataAccess.create_many_order_details_safe(details_list, session)
-                ProductDataAccess.update_many_products_stock_safe(products_ids, quantities, session)
-
-                session.close()
-                connetion.commit()
-                # Fim da transação;
-
-            except Exception as error:
-                connetion.rollback()
+                session.rollback()
+                print(error)
                 raise error
 
     def __get_order_report(self, order: int):

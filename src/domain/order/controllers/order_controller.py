@@ -50,11 +50,12 @@ class OrderController():
 
 
             self.orderRegisterView.showView('Sucesso', 'Pedido cadastrado!')
-            self.orderRegisterView.state.set(0)
-            self.list.clear()
-            self.clearRegisterHandler(event)
         except Exception as error:
             ErrorHandler.showError(ErrorHandler.catchError(error))
+        finally:
+            self.clearRegisterHandler(event)
+            self.list.clear()
+            self.orderRegisterView.frameListbox.delete(0, END)
 
 #------------------------------------
 
@@ -128,7 +129,6 @@ class OrderController():
             0, len(self.orderRegisterView.product_name.get()))
         self.orderRegisterView.quantity.delete(
             0, len(self.orderRegisterView.quantity.get()))
-        self.orderRegisterView.state.set(0)
         self.orderRegisterView.frameListbox.delete(0, END)
         
 
